@@ -1,36 +1,19 @@
 const { generateToken } = require("../config/jwtToken");
-const userCollection = require("../models/userModal");
-
-// get all user
-async function findAllUser() {
-  return await userCollection.find();
-}
-
-// get a user by email
-async function findUserByEmail({ email }) {
-  return await userCollection.findOne({ email });
-}
-
-// get user by id
-async function findUserById({ id }) {
-  return await userCollection.findById(id);
-}
-
-async function updateUser({ id }, { body }) {
-  return await userCollection.findByIdAndUpdate(id, { ...body }, { new: true });
-}
-
-// delete user
-async function deleteUser({ id }) {
-  return await userCollection.findByIdAndDelete(id);
-}
+const {
+  createDocument,
+  getDocumentByEmail,
+  getAllDocument,
+  getDocumentById,
+  updateDocument,
+  deleteDocument,
+} = require("./commonController");
 
 // create user
-const createUser = async (req, res) => {
+const registerUser = async (req, res) => {
   const email = req.body.email;
-  const findUser = await findUserByEmail({ email });
+  const findUser = await getDocumentByEmail({ email });
   if (!findUser) {
-    const newUser = await userCollection.create(req.body);
+    const newUser = await createDocument({ body: req.body });
     res.json(newUser);
   } else {
     res.json({
@@ -44,10 +27,9 @@ async function loginUser(req, res) {
   const { email: enteredEmail, password: enteredPassword } = req.body;
 
   try {
-    const findUser = await findUserByEmail({
+    const findUser = await getDocumentByEmail({
       email: enteredEmail,
     });
-
     // if (!findUser && (await findUser.isPasswordMatched(password))) {
     if (!findUser) {
       // throw new Error("Uses doesn't exist");
@@ -67,8 +49,9 @@ async function loginUser(req, res) {
 
 // Get all user
 async function getAllUser(req, res) {
+  console.log(req.user);
   try {
-    const getUsers = await findAllUser();
+    const getUsers = await getAllDocument();
     res.json(getUsers);
   } catch (error) {
     throw new Error(error);
@@ -79,7 +62,7 @@ async function getAllUser(req, res) {
 async function getUserById(req, res) {
   try {
     const { id } = req.params;
-    const user = await findUserById({ id });
+    const user = await getDocumentById({ id });
     res.json(user);
   } catch (error) {
     throw new Error(error);
@@ -93,7 +76,7 @@ async function updateUserById(req, res) {
       params: { id },
       body,
     } = req;
-    const updatedUser = await updateUser({ id }, { body });
+    const updatedUser = await updateDocument({ id }, { body });
     res.json(updatedUser);
   } catch (error) {
     throw new Error(error);
@@ -104,17 +87,64 @@ async function updateUserById(req, res) {
 async function deleteUserById(req, res) {
   try {
     const { id } = req.params;
-    const deletedUser = await deleteUser({ id });
+    const deletedUser = await deleteDocument({ id });
     res.json(deletedUser);
   } catch (error) {
     throw new Error(error);
   }
 }
+
+async function blockUser(req, res) {
+  const { id } = req.params;
+
+  try {
+    const block = await updateDocument(
+      {
+        id,
+      },
+      {
+        body: {
+          isBlocked: true,
+        },
+      }
+    );
+
+    res.json({
+      message: "User Blocked",
+    });
+  } catch (error) {
+    throw new Error(error);
+  }
+}
+
+async function unblockUser(req, res) {
+  const { id } = req.params;
+  try {
+    const unblock = await updateDocument(
+      {
+        id,
+      },
+      {
+        body: {
+          isBlocked: false,
+        },
+      }
+    );
+
+    res.json({
+      message: "User UnBlocked",
+    });
+  } catch (error) {
+    throw new Error(error);
+  }
+}
 module.exports = {
-  createUser,
+  registerUser,
   loginUser,
   getAllUser,
   getUserById,
   deleteUserById,
   updateUserById,
+  blockUser,
+  unblockUser,
 };
